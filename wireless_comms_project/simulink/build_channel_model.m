@@ -10,8 +10,10 @@ open_system(mdl);
 lib  = 'simulink/User-Defined Functions/MATLAB Function';
 px   = 30; step = 210;
 
-%% Input
-add_block('simulink/Sources/In1', [mdl '/TX In'], 'Position',[px 70 px+30 90]);
+%% Input  (256x1 복소 벡터)
+add_block('simulink/Sources/In1', [mdl '/TX In'], ...
+    'Position',[px 70 px+30 90], ...
+    'PortDimensions','256', 'SignalType','complex');
 px = px + step;
 
 %% Multipath — 고정 크기 순환 버퍼 (입출력 크기 동일)
@@ -72,8 +74,10 @@ add_block('simulink/Sources/Constant', [mdl '/EbNo'], ...
     'Value','10', 'SampleTime','inf', ...
     'Position',[px-step 160 px-step+80 190]);
 
-%% Output
-add_block('simulink/Sinks/Out1', [mdl '/RX Out'], 'Position',[px 70 px+30 90]);
+%% Output  (256x1 복소 벡터)
+add_block('simulink/Sinks/Out1', [mdl '/RX Out'], ...
+    'Position',[px 70 px+30 90], ...
+    'PortDimensions','256', 'SignalType','complex');
 
 %% Connections
 add_line(mdl, 'TX In/1',    'Multipath/1');

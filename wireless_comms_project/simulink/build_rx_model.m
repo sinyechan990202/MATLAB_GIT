@@ -12,8 +12,10 @@ open_system(mdl);
 lib  = 'simulink/User-Defined Functions/MATLAB Function';
 px   = 30; step = 210;
 
-%% Input
-add_block('simulink/Sources/In1', [mdl '/RX In'], 'Position',[px 70 px+30 90]);
+%% Input  (256x1 복소 벡터)
+add_block('simulink/Sources/In1', [mdl '/RX In'], ...
+    'Position',[px 70 px+30 90], ...
+    'PortDimensions','256', 'SignalType','complex');
 px = px + step;
 
 %% AGC
@@ -82,8 +84,10 @@ set_fcn(mdl, 'MMSE EQ', ...
 set_complex_output(mdl, 'MMSE EQ');
 px = px + step;
 
-%% Output (복소 등화 심볼)
-add_block('simulink/Sinks/Out1', [mdl '/EQ Symbols'], 'Position',[px 70 px+30 90]);
+%% Output  (256x1 복소 벡터)
+add_block('simulink/Sinks/Out1', [mdl '/EQ Symbols'], ...
+    'Position',[px 70 px+30 90], ...
+    'PortDimensions','256', 'SignalType','complex');
 
 %% Connections
 add_line(mdl, 'RX In/1',       'AGC/1');
