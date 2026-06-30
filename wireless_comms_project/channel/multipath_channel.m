@@ -1,18 +1,17 @@
-function [rx, chan_obj] = multipath_channel(tx, ch, sys)
-% Frequency-selective multipath channel (ITU profiles)
-%
-% ch.path_delays_s  : Tap delay vector (sec)
-% ch.path_gains_db  : Tap power vector (dB)
-% ch.doppler_hz     : Max Doppler shift
+function rx = multipath_channel(tx, ch, sys)
+% Frequency-selective multipath channel — pure MATLAB block fading
+% ch.path_delays_s / ch.path_gains_db: ITU VehA (or similar) profile
 
-chan_obj = comm.RayleighChannel( ...
-    'SampleRate',          sys.fs, ...
-    'PathDelays',          ch.path_delays_s, ...
-    'AveragePathGains',    ch.path_gains_db, ...
-    'MaximumDopplerShift', ch.doppler_hz, ...
-    'NormalizePathGains',  true, ...
-    'RandomStream',        'mt19937ar with seed', ...
-    'Seed',                42);
+delays_samp = round(ch.path_delays_s * sys.fs);   % [0 3 7 10 17 25] @ 10 MHz
+gains_lin   = 10.^(ch.path_gains_db / 20);
+max_delay   = max(delays_samp);
+N           = length(tx);
+rx          = zeros(N, 1);
 
-rx = chan_obj(tx(:));
+% Block-fading: draw one Rayleigh coefficient per path per frame
+for k = 1:length(delays_samp)
+    h = gains_lin(k) * (randn + 1j*randn) / sqrt(2);
+    d = delays_samp(k);
+    rx(1+d:end) = rx(1+d:end) + h * tx(1:N-d);
+end
 end

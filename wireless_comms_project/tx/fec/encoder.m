@@ -1,12 +1,14 @@
 function coded_bits = encoder(bits, modem)
 % FEC encoder dispatcher
-% modem.fec_type: 'LDPC' | 'Turbo' | 'Conv'
+% modem.fec_type: 'None' | 'LDPC' | 'Turbo' | 'Conv'
 
 switch upper(modem.fec_type)
+    case 'NONE'
+        coded_bits = bits(:);
+
     case 'LDPC'
         cfg = dvbs2ldpc(modem.code_rate);
         enc = comm.LDPCEncoder(cfg);
-        % Zero-pad to block boundary
         blk = enc.NumInputBits;
         bits = zero_pad(bits, blk);
         coded_bits = [];
@@ -34,10 +36,6 @@ end
 end
 
 function out = zero_pad(bits, blk)
-rem = mod(length(bits), blk);
-if rem > 0
-    out = [bits(:); zeros(blk - rem, 1)];
-else
-    out = bits(:);
-end
+r = mod(length(bits), blk);
+if r > 0, out = [bits(:); zeros(blk - r, 1)]; else, out = bits(:); end
 end

@@ -5,10 +5,11 @@ modem.scheme     = 'QAM16';   % 'BPSK'|'QPSK'|'QAM16'|'QAM64'|'QAM256'
 modem.mod_order  = 16;
 modem.bps        = log2(modem.mod_order);  % bits per symbol
 
-%% FEC
-modem.fec_type   = 'LDPC';    % 'LDPC' | 'Turbo' | 'Conv'
+%% FEC  — 'None': bypass (no toolbox required)
+%%         'Conv' / 'LDPC' / 'Turbo': require Communications Toolbox
+modem.fec_type   = 'None';
 modem.code_rate  = 1/2;
-modem.block_len  = 1024;      % FEC block length (bits)
+modem.block_len  = 1024;      % FEC block length (bits); also used as tx frame size
 
 %% Pulse shaping (RRC)
 modem.rolloff    = 0.25;      % Roll-off factor (α)

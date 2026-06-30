@@ -1,33 +1,39 @@
-% Integration test: full TX → channel → RX chain
+% test_full_chain.m — Integration test: TX → AWGN → RX, BER check
 
-addpath(genpath('../'));
+clear; clc;
+addpath(genpath(fullfile(fileparts(mfilename('fullpath')), '..')));
+
 run('../config/sys_params.m');
 run('../config/channel_params.m');
 run('../config/modem_params.m');
 
 rng(sys.seed);
 
-% Use Conv FEC for fast test
-modem.fec_type  = 'Conv';
-modem.mod_order = 4;
-modem.bps       = 2;
+% AWGN-only channel for integration test
+ch_test = ch;
+ch_test.doppler_hz    = 0;
+ch_test.path_delays_s = 0;
+ch_test.path_gains_db = 0;
 
-n_bits  = modem.block_len;
-snr_db  = 15;
+EbNo_dB = 15;   % High SNR → should yield very low BER
+n_errors = 0; n_bits = 0;
 
-%% TX
-[tx_signal, meta] = tx_top(n_bits, sys, modem);
+for f = 1:20
+    [tx_signal, meta] = tx_top(modem.block_len, sys, modem);
+    meta.EbNo_dB      = EbNo_dB;
 
-%% Channel (AWGN only for integration test)
-rx_signal = awgn_channel(tx_signal, snr_db);
+    rx_signal         = channel_top(tx_signal, EbNo_dB, sys, ch_test, modem);
+    [rx_bits, ~]      = rx_top(rx_signal, meta, sys, modem);
 
-%% RX
-[rx_bits, ~] = rx_top(rx_signal, meta, sys, modem);
+    n = min(length(meta.tx_bits), length(rx_bits));
+    [~, ~, ne, ~] = ber_calc(meta.tx_bits(1:n), rx_bits(1:n), modem.bps);
+    n_errors = n_errors + ne;
+    n_bits   = n_bits   + n;
+end
 
-%% Evaluate
-n = min(length(meta.tx_bits), length(rx_bits));
-[ber, ~, ~, ~] = ber_calc(meta.tx_bits(1:n), rx_bits(1:n), modem.bps);
+ber = n_errors / max(n_bits, 1);
+fprintf('Full chain test @ %d dB Eb/N0:  BER = %.2e  (%d errors / %d bits)\n', ...
+    EbNo_dB, ber, n_errors, n_bits);
 
-fprintf('Full chain test @ %d dB: BER = %.2e\n', snr_db, ber);
-assert(ber < 0.1, 'BER too high in full chain test');
+assert(ber < 0.05, sprintf('BER %.2e exceeds 5%% threshold', ber));
 fprintf('[PASS] Full chain integration test\n');
