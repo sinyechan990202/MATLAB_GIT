@@ -35,6 +35,7 @@ set_fcn(mdl, 'Multipath', ...
      '    end' newline ...
      '    y(i) = s;' newline ...
      'end']);
+set_complex_output(mdl, 'Multipath');
 px = px + step;
 
 %% Doppler Shift
@@ -51,6 +52,7 @@ set_fcn(mdl, 'Doppler', ...
      '    y(k) = x(k) * exp(1j * phase);' newline ...
      '    phase = phase + 2*pi*fo/fs;' newline ...
      'end']);
+set_complex_output(mdl, 'Doppler');
 px = px + step;
 
 %% AWGN
@@ -64,6 +66,7 @@ set_fcn(mdl, 'AWGN', ...
      'noise_var = sig_pwr / (10^(EsNo/10));' newline ...
      'n = sqrt(noise_var/2) * (randn(size(x)) + 1j*randn(size(x)));' newline ...
      'y = x + n;']);
+set_complex_output(mdl, 'AWGN');
 px = px + step;
 
 %% Constant for EbNo input
@@ -91,4 +94,13 @@ function set_fcn(mdl, blk_name, script)
     rt = sfroot();
     ch = rt.find('-isa','Stateflow.EMChart','Path',[mdl '/' blk_name]);
     ch.Script = script;
+end
+
+function set_complex_output(mdl, blk_name)
+    rt = sfroot();
+    ch = rt.find('-isa','Stateflow.EMChart','Path',[mdl '/' blk_name]);
+    y  = ch.find('-isa','Stateflow.Data','Name','y');
+    if ~isempty(y)
+        y.Complexity = 'On';
+    end
 end
