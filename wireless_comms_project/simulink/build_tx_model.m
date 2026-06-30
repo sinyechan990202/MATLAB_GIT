@@ -5,30 +5,44 @@ if bdIsLoaded(mdl), close_system(mdl, 0); end
 new_system(mdl);
 open_system(mdl);
 
-%% ---- Blocks ----
+lib = 'simulink/User-Defined Functions/MATLAB Function';
+px  = 30; step = 180;
+
+%% Bit Source
 add_block('simulink/Sources/Random Number', [mdl '/Bit Source'], ...
     'Mean','0.5','Variance','0.25','SampleTime','1/1e6', ...
-    'Position',[30 60 130 100]);
+    'Position',[px 60 px+110 100]);
+px = px + step;
 
-add_block('simulink/User-Defined Functions/MATLAB Function', [mdl '/Modulator'], ...
-    'Position',[200 55 320 105]);
-set_param([mdl '/Modulator'], 'MATLABFunction', ...
-    'function y = fcn(x); y = qammod(round(x),16,''UnitAveragePower'',true);');
+%% Modulator
+add_block(lib, [mdl '/Modulator'], 'Position',[px 55 px+130 105]);
+set_fcn(mdl, 'Modulator', ...
+    ['function y = fcn(x)' newline ...
+     'y = qammod(round(x), 16, ''UnitAveragePower'', true);']);
+px = px + step;
 
-add_block('simulink/User-Defined Functions/MATLAB Function', [mdl '/RRC Filter'], ...
-    'Position',[380 55 500 105]);
-set_param([mdl '/RRC Filter'], 'MATLABFunction', ...
-    'function y = fcn(x); persistent h; if isempty(h), h = rcosdesign(0.25,8,4,''sqrt''); end; y = filter(h,1,x);');
+%% RRC Filter
+add_block(lib, [mdl '/RRC Filter'], 'Position',[px 55 px+130 105]);
+set_fcn(mdl, 'RRC Filter', ...
+    ['function y = fcn(x)' newline ...
+     'persistent h' newline ...
+     'if isempty(h), h = rcosdesign(0.25, 8, 4, ''sqrt''); end' newline ...
+     'y = filter(h, 1, x);']);
+px = px + step;
 
-add_block('simulink/User-Defined Functions/MATLAB Function', [mdl '/RF Impairments'], ...
-    'Position',[560 55 700 105]);
-set_param([mdl '/RF Impairments'], 'MATLABFunction', ...
-    'function y = fcn(x); amp = 10^(0.5/20); ph = 1*pi/180; I=real(x); Q=imag(x); y = complex(amp*(I*cos(ph/2)-Q*sin(ph/2)), I*sin(ph/2)+Q*cos(ph/2));');
+%% RF Impairments
+add_block(lib, [mdl '/RF Impairments'], 'Position',[px 55 px+130 105]);
+set_fcn(mdl, 'RF Impairments', ...
+    ['function y = fcn(x)' newline ...
+     'amp = 10^(0.5/20); ph = 1*pi/180;' newline ...
+     'I = real(x); Q = imag(x);' newline ...
+     'y = complex(amp*(I*cos(ph/2) - Q*sin(ph/2)), I*sin(ph/2) + Q*cos(ph/2));']);
+px = px + step;
 
-add_block('simulink/Sinks/Out1', [mdl '/TX Out'], ...
-    'Position',[790 70 820 90]);
+%% Output
+add_block('simulink/Sinks/Out1', [mdl '/TX Out'], 'Position',[px 70 px+30 90]);
 
-%% ---- Connections ----
+%% Connections
 add_line(mdl, 'Bit Source/1',    'Modulator/1');
 add_line(mdl, 'Modulator/1',     'RRC Filter/1');
 add_line(mdl, 'RRC Filter/1',    'RF Impairments/1');
@@ -39,3 +53,10 @@ set_param(mdl, 'SolverType','Fixed-step','Solver','FixedStepDiscrete', ...
 
 save_system(mdl, fullfile(fileparts(mfilename('fullpath')), 'tx_model.slx'));
 fprintf('Saved: tx_model.slx\n');
+
+%% Helper — set MATLAB Function block script via Stateflow API
+function set_fcn(mdl, blk_name, script)
+    rt  = sfroot();
+    ch  = rt.find('-isa','Stateflow.EMChart','Path',[mdl '/' blk_name]);
+    ch.Script = script;
+end
